@@ -1294,6 +1294,15 @@ try:
         r_quality = config['quality']
         name = config['name']
 
+        result=os.popen("ps aux | grep -v grep | grep {}".format(sourceFile))
+        output=result.read().strip()
+        logger.debug(output)
+
+        # in crontab, the number of processors is 2
+        if output and len(output.split("\n")) > 2:
+            logger.error("{name}直播录制中...")
+            sys.exit(1)
+
         logging.info(f"开始录制直播：{name}-{r_quality}-{target_url}")
         url_tuple = ((r_quality, target_url, name), 1)
         # record_thread = threading.Thread(target=start_record_new, args=url_tuple)
