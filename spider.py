@@ -32,7 +32,7 @@ opener = urllib.request.build_opener(no_proxy_handler)
 
 
 @trace_error_decorator
-def get_douyin_stream_data(url: str, cookies: Union[str, None] = None) -> Dict[str, Any]:
+def get_douyin_stream_data(url: str, cookies: Union[str, None] = None, ua:str = None) -> Dict[str, Any]:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
         'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
@@ -41,6 +41,9 @@ def get_douyin_stream_data(url: str, cookies: Union[str, None] = None) -> Dict[s
     }
     if cookies:
         headers['Cookie'] = cookies
+
+    if ua:
+        headers['User-Agent'] = ua
 
     try:
         # 使用更底层的urllib内置库，防止开启代理时导致的抖音录制SSL 443报错
