@@ -109,13 +109,17 @@ def get_tiktok_stream_data(url: str, proxy_addr: Union[str, None] = None, cookie
 
 
 @trace_error_decorator
-def get_kuaishou_stream_data(url: str, cookies: Union[str, None] = None) -> Dict[str, Any]:
+def get_kuaishou_stream_data(url: str, cookies: Union[str, None] = None, ua:str = None) -> Dict[str, Any]:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
         'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
     }
     if cookies:
         headers['Cookie'] = cookies
+
+    if ua:
+        headers['User-Agent'] = ua
+
     try:
         req = urllib.request.Request(url, headers=headers)
         response = urllib.request.urlopen(req, timeout=15)

@@ -608,7 +608,7 @@ def start_record(url_data: tuple, count_variable: int = -1):
         elif record_url.find("https://live.kuaishou.com/") > -1:
             platform = '快手直播'
             with semaphore:
-                json_data = get_kuaishou_stream_data(record_url, cookies=ks_cookie)
+                json_data = get_kuaishou_stream_data(record_url, cookies=ks_cookie, ua=ua.random)
                 port_info = get_kuaishou_stream_url(json_data, record_quality)
 
         elif record_url.find("https://www.huya.com/") > -1:
