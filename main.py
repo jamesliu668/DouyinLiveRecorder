@@ -8,7 +8,7 @@ Update: 2024-02-09 02:41:18
 Copyright (c) 2023-2024 by Hmily, All Rights Reserved.
 Function: Record live stream video.
 """
-
+import argparse
 import random
 import os
 import sys
@@ -24,6 +24,8 @@ import re
 import shutil
 import signal
 from typing import Any, Union
+
+from tqdm import tqdm
 
 from spider import (
     get_douyin_stream_data,
@@ -97,53 +99,33 @@ def display_info():
     global start_display_time
     global recording_time_list
     time.sleep(5)
-    while True:
-        try:
-            time.sleep(5)
-            if os.name == 'nt':
-                os.system("cls")
-            elif os.name == 'posix':
-                os.system("clear")
-            print(f"\r共监测{monitoring}个直播中", end=" | ")
-            print(f"同一时间访问网络的线程数: {max_request}", end=" | ")
-            if len(video_save_path) > 0:
-                if not os.path.exists(video_save_path):
-                    print("配置文件里,直播保存路径并不存在,请重新输入一个正确的路径.或留空表示当前目录,按回车退出")
-                    input("程序结束")
-                    sys.exit(0)
-
-            print(f"是否开启代理录制: {'是' if use_proxy else '否'}", end=" | ")
-            if split_video_by_time:
-                print(f"录制分段开启: {split_time}秒", end=" | ")
-            print(f"是否生成时间文件: {'是' if create_time_file else '否'}", end=" | ")
-            print(f"录制视频质量为: {video_record_quality}", end=" | ")
-            print(f"录制视频格式为: {video_save_type}", end=" | ")
-            print(f"目前瞬时错误数为: {warning_count}", end=" | ")
-            format_now_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-            print(f"当前时间: {format_now_time}")
-
-            if len(recording) == 0 and len(unrecording) == 0:
+    print(f"\r共监测{monitoring}个直播中", end=" | ")
+    print(f"同一时间访问网络的线程数: {max_request}", end=" | ")
+    print(f"是否开启代理录制: {'是' if use_proxy else '否'}", end=" | ")
+    if split_video_by_time:
+        print(f"录制分段开启: {split_time}秒", end=" | ")
+    print(f"是否生成时间文件: {'是' if create_time_file else '否'}", end=" | ")
+    print(f"录制视频质量为: {video_record_quality}", end=" | ")
+    print(f"录制视频格式为: {video_save_type}", end=" | ")
+    print(f"目前瞬时错误数为: {warning_count}", end=" | ")
+    with tqdm(total=18000, desc="正在录制中", leave=False) as pbar:
+        while True:
+            try:
                 time.sleep(5)
-                print(f"\r没有正在录制的直播 {format_now_time[-8:]}", end="")
-                print("")
-                continue
-            else:
-                now_time = datetime.datetime.now()
-                if len(recording) > 0:
-                    print("x" * 60)
-                    no_repeat_recording = list(set(recording))
-                    print(f"正在录制{len(no_repeat_recording)}个直播: ")
-                    for recording_live in no_repeat_recording:
-                        rt, qa = recording_time_list[recording_live]
-                        have_record_time = now_time - rt
-                        print(f"{recording_live}[{qa}] 正在录制中 " + str(have_record_time).split('.')[0])
-
-                    # print('\n本软件已运行：'+str(now_time - start_display_time).split('.')[0])
-                    print("x" * 60)
-                else:
-                    start_display_time = now_time
-        except Exception as e:
-            logger.warning(f"错误信息: {e} 发生错误的行数: {e.__traceback__.tb_lineno}")
+                # if os.name == 'nt':
+                #     os.system("cls")
+                # elif os.name == 'posix':
+                #     os.system("clear")
+                # print(f"\r共监测{monitoring}个直播中", end=" | ")
+                # print(f"同一时间访问网络的线程数: {max_request}", end=" | ")
+                if len(video_save_path) > 0:
+                    if not os.path.exists(video_save_path):
+                        print("配置文件里,直播保存路径并不存在,请重新输入一个正确的路径.或留空表示当前目录,按回车退出")
+                        input("程序结束")
+                        sys.exit(0)
+                pbar.update(5)
+            except Exception as e:
+                logger.warning(f"错误信息: {e} 发生错误的行数: {e.__traceback__.tb_lineno}")
 
 
 def update_file(file_path: str, old_str: str, new_str: str, start_str: str = None):
@@ -1111,6 +1093,93 @@ def start_record(url_data: tuple, count_variable: int = -1):
             time.sleep(2)
 
 
+def start_record_new(record_quality, record_url, anchor_name):
+    port_info = []
+    if record_url.find("https://live.douyin.com/") > -1:
+        platform = '抖音直播'
+        # 判断如果是浏览器长链接
+        with semaphore:
+            # 使用semaphore来控制同时访问资源的线程数量
+            json_data = get_douyin_stream_data(record_url, cookies=dy_cookie)
+            port_info = get_douyin_stream_url(json_data, record_quality)
+    if port_info['is_live'] is False:
+        print(f"{anchor_name} 等待直播... ")
+    else:
+        content = f"{anchor_name} 正在直播中..."
+        print(content)
+
+        # 推送通知
+        if live_status_push:
+            if '微信' in live_status_push:
+                xizhi(xizhi_api_url, content)
+            if '钉钉' in live_status_push:
+                dingtalk(dingtalk_api_url, content, dingtalk_phone_num)
+            if 'TG' in live_status_push:
+                tg_bot(tg_chat_id, tg_token, content)
+
+        real_url = port_info['record_url']
+        full_path = f'{default_path}/{platform}/{anchor_name}'
+        if len(real_url) > 0:
+            live_list.append(anchor_name)
+            now = datetime.datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+
+            try:
+                full_path = full_path.replace("\\", '/')
+
+                if not os.path.exists(full_path):
+                    os.makedirs(full_path)
+            except Exception as e:
+                logger.warning(f"错误信息: {e} 发生错误的行数: {e.__traceback__.tb_lineno}")
+
+            if not os.path.exists(full_path):
+                logger.warning(
+                    "错误信息: 保存路径不存在,不能生成录制.请避免把本程序放在c盘,桌面,下载文件夹,qq默认传输目录.请重新检查设置")
+
+            user_agent = ("Mozilla/5.0 (Linux; Android 11; SAMSUNG SM-G973U) AppleWebKit/537.36 ("
+                          "KHTML, like Gecko) SamsungBrowser/14.2 Chrome/87.0.4280.141 Mobile "
+                          "Safari/537.36")
+            ffmpeg_command = [
+                ffmpeg_path, "-y",
+                "-v", "verbose",
+                "-rw_timeout", "30000000",  # 改为30s
+                "-loglevel", "error",
+                "-hide_banner",
+                "-user_agent", user_agent,
+                "-protocol_whitelist", "rtmp,crypto,file,http,https,tcp,tls,udp,rtp",
+                "-thread_queue_size", "512",
+                "-analyzeduration", "5000000",
+                "-probesize", "10000000",
+                "-fflags", "+discardcorrupt",
+                "-i", real_url,
+                "-bufsize", "9000k",  # 适当增加输入缓冲区大小
+                "-sn", "-dn",
+                "-reconnect_delay_max", "60",  # 适当增加最大重连延迟
+                "-reconnect_streamed", "-reconnect_at_eof",
+                "-max_muxing_queue_size", "128",  # 适当增加输出复用器的最大队列大小
+                "-correct_ts_overflow", "1",
+            ]
+            start_record_time = datetime.datetime.now()
+            rec_info = f"\r{anchor_name} 录制视频中: {full_path}"
+            filename_short = full_path + '/' + anchor_name + '_' + now
+            filename = anchor_name + '_' + now + ".mp4"
+            print(f'{rec_info}/{filename}')
+            save_file_path = full_path + '/' + filename
+
+            try:
+                command = [
+                    "-map", "0",
+                    "-c:v", "copy",
+                    "-c:a", "copy",
+                    "-f", "mp4",
+                    "{path}".format(path=save_file_path),
+                ]
+                ffmpeg_command.extend(command)
+                _output = subprocess.check_output(ffmpeg_command, stderr=subprocess.STDOUT)
+
+            except subprocess.CalledProcessError as e:
+                logger.warning(f"错误信息: {e} 发生错误的行数: {e.__traceback__.tb_lineno}")
+
+
 def backup_file(file_path: str, backup_dir_path: str):
     """
     备份配置文件到备份目录，分别保留最新 5 个文件
@@ -1196,19 +1265,8 @@ if not os.path.exists('./config'):
     os.makedirs('./config')
 
 # 备份配置
-t3 = threading.Thread(target=backup_file_start, args=(), daemon=True)
-t3.start()
-
-# 录制tiktok时，如果开启了电脑全局/规则代理，可以不用再在配置文件中填写代理地址
-# 但强烈建议还是配置一下代理地址，否则非常不稳定
-try:
-    # 检测电脑是否开启了全局/规则代理
-    print('系统代理检测中，请耐心等待...')
-    response_g = urllib.request.urlopen("https://www.google.com/", timeout=15)
-    global_proxy = True
-    print('全局/规则网络代理已开启√ 注意：配置文件中的代理设置也要开启才会生效哦！')
-except Exception:
-    print('INFO：未检测到全局/规则网络代理，请检查代理配置（若无需录制TikTok/AfreecaTV直播请忽略此条提示）')
+# t3 = threading.Thread(target=backup_file_start, args=(), daemon=True)
+# t3.start()
 
 
 def read_config_value(config_parser: configparser.RawConfigParser, section: str, option: str, default_value: Any) -> (
@@ -1232,204 +1290,117 @@ def read_config_value(config_parser: configparser.RawConfigParser, section: str,
 
 options = {"是": True, "否": False}
 
-while True:
-    # 循环读取配置
-    config = configparser.RawConfigParser()
+# 读取配置
+config = configparser.RawConfigParser()
 
-    try:
-        with open(config_file, 'r', encoding=encoding) as file:
-            config.read_file(file)
-    except IOError:
-        with open(config_file, 'w', encoding=encoding) as file:
-            pass
+try:
+    with open(config_file, 'r', encoding=encoding) as file:
+        config.read_file(file)
+except IOError:
+    with open(config_file, 'w', encoding=encoding) as file:
+        pass
 
-    if os.path.isfile(url_config_file):
-        with open(url_config_file, 'r', encoding=encoding) as file:
-            ini_content = file.read()
-    else:
-        ini_content = ""
+video_save_path = read_config_value(config, '录制设置', '直播保存路径（不填则默认）', "")
+video_save_type = read_config_value(config, '录制设置', '视频保存格式TS|MKV|FLV|MP4|TS音频|MKV音频', "mp4")
+video_record_quality = read_config_value(config, '录制设置', '原画|超清|高清|标清', "原画")
+use_proxy = options.get(read_config_value(config, '录制设置', '是否使用代理ip（是/否）', "是"), False)
+proxy_addr = read_config_value(config, '录制设置', '代理地址', "")
+max_request = int(read_config_value(config, '录制设置', '同一时间访问网络的线程数', 3))
+semaphore = threading.Semaphore(max_request)
+delay_default = int(read_config_value(config, '录制设置', '循环时间(秒)', 120))
+local_delay_default = int(read_config_value(config, '录制设置', '排队读取网址时间(秒)', 0))
+loop_time = options.get(read_config_value(config, '录制设置', '是否显示循环秒数', "否"), False)
+split_video_by_time = options.get(read_config_value(config, '录制设置', '分段录制是否开启', "否"), False)
+split_time = str(read_config_value(config, '录制设置', '视频分段时间(秒)', 3600))
+tsconvert_to_mp4 = options.get(read_config_value(config, '录制设置', 'TS录制完成后自动转为mp4格式', "否"),
+                               False)
+tsconvert_to_m4a = options.get(read_config_value(config, '录制设置', 'TS录制完成后自动增加生成m4a格式', "否"),
+                               False)
+delete_origin_file = options.get(read_config_value(config, '录制设置', '追加格式后删除原文件', "否"), False)
+create_time_file = options.get(read_config_value(config, '录制设置', '生成时间文件', "否"), False)
+live_status_push = read_config_value(config, '推送配置', '直播状态通知(可选微信|钉钉|TG或者都填)', "")
+dingtalk_api_url = read_config_value(config, '推送配置', '钉钉推送接口链接', "")
+xizhi_api_url = read_config_value(config, '推送配置', '微信推送接口链接', "")
+dingtalk_phone_num = read_config_value(config, '推送配置', '钉钉通知@对象(填手机号)', "")
+tg_token = read_config_value(config, '推送配置', 'TGAPI令牌', "")
+tg_chat_id = read_config_value(config, '推送配置', 'TG聊天ID(个人或者群组ID)', "")
+dy_cookie = read_config_value(config, 'Cookie', '抖音cookie(录制抖音必须要有)', '')
+ks_cookie = read_config_value(config, 'Cookie', '快手cookie', '')
+tiktok_cookie = read_config_value(config, 'Cookie', 'tiktok_cookie', '')
+hy_cookie = read_config_value(config, 'Cookie', '虎牙cookie', '')
+douyu_cookie = read_config_value(config, 'Cookie', '斗鱼cookie', '')
+yy_cookie = read_config_value(config, 'Cookie', 'yy_cookie', '')
+bili_cookie = read_config_value(config, 'Cookie', 'B站cookie', '')
+xhs_cookie = read_config_value(config, 'Cookie', '小红书cookie', '')
+bigo_cookie = read_config_value(config, 'Cookie', 'bigo_cookie', '')
+blued_cookie = read_config_value(config, 'Cookie', 'blued_cookie', '')
+afreecatv_cookie = read_config_value(config, 'Cookie', 'afreecatv_cookie', '')
+netease_cookie = read_config_value(config, 'Cookie', 'netease_cookie', '')
+qiandurebo_cookie = read_config_value(config, 'Cookie', '千度热播_cookie', '')
+pandatv_cookie = read_config_value(config, 'Cookie', 'pandatv_cookie', '')
+maoerfm_cookie = read_config_value(config, 'Cookie', '猫耳FM_cookie', '')
 
-    if len(ini_content) == 0:
-        input_url = input('请输入要录制的主播直播间网址（尽量使用PC网页端的直播间地址）:\n')
-        with open(url_config_file, 'a+', encoding=encoding) as file:
-            file.write(input_url)
-
-    video_save_path = read_config_value(config, '录制设置', '直播保存路径（不填则默认）', "")
-    video_save_type = read_config_value(config, '录制设置', '视频保存格式TS|MKV|FLV|MP4|TS音频|MKV音频', "mp4")
-    video_record_quality = read_config_value(config, '录制设置', '原画|超清|高清|标清', "原画")
-    use_proxy = options.get(read_config_value(config, '录制设置', '是否使用代理ip（是/否）', "是"), False)
-    proxy_addr = read_config_value(config, '录制设置', '代理地址', "")
-    max_request = int(read_config_value(config, '录制设置', '同一时间访问网络的线程数', 3))
-    semaphore = threading.Semaphore(max_request)
-    delay_default = int(read_config_value(config, '录制设置', '循环时间(秒)', 120))
-    local_delay_default = int(read_config_value(config, '录制设置', '排队读取网址时间(秒)', 0))
-    loop_time = options.get(read_config_value(config, '录制设置', '是否显示循环秒数', "否"), False)
-    split_video_by_time = options.get(read_config_value(config, '录制设置', '分段录制是否开启', "否"), False)
-    split_time = str(read_config_value(config, '录制设置', '视频分段时间(秒)', 3600))
-    tsconvert_to_mp4 = options.get(read_config_value(config, '录制设置', 'TS录制完成后自动转为mp4格式', "否"),
-                                   False)
-    tsconvert_to_m4a = options.get(read_config_value(config, '录制设置', 'TS录制完成后自动增加生成m4a格式', "否"),
-                                   False)
-    delete_origin_file = options.get(read_config_value(config, '录制设置', '追加格式后删除原文件', "否"), False)
-    create_time_file = options.get(read_config_value(config, '录制设置', '生成时间文件', "否"), False)
-    live_status_push = read_config_value(config, '推送配置', '直播状态通知(可选微信|钉钉|TG或者都填)', "")
-    dingtalk_api_url = read_config_value(config, '推送配置', '钉钉推送接口链接', "")
-    xizhi_api_url = read_config_value(config, '推送配置', '微信推送接口链接', "")
-    dingtalk_phone_num = read_config_value(config, '推送配置', '钉钉通知@对象(填手机号)', "")
-    tg_token = read_config_value(config, '推送配置', 'TGAPI令牌', "")
-    tg_chat_id = read_config_value(config, '推送配置', 'TG聊天ID(个人或者群组ID)', "")
-    dy_cookie = read_config_value(config, 'Cookie', '抖音cookie(录制抖音必须要有)', '')
-    ks_cookie = read_config_value(config, 'Cookie', '快手cookie', '')
-    tiktok_cookie = read_config_value(config, 'Cookie', 'tiktok_cookie', '')
-    hy_cookie = read_config_value(config, 'Cookie', '虎牙cookie', '')
-    douyu_cookie = read_config_value(config, 'Cookie', '斗鱼cookie', '')
-    yy_cookie = read_config_value(config, 'Cookie', 'yy_cookie', '')
-    bili_cookie = read_config_value(config, 'Cookie', 'B站cookie', '')
-    xhs_cookie = read_config_value(config, 'Cookie', '小红书cookie', '')
-    bigo_cookie = read_config_value(config, 'Cookie', 'bigo_cookie', '')
-    blued_cookie = read_config_value(config, 'Cookie', 'blued_cookie', '')
-    afreecatv_cookie = read_config_value(config, 'Cookie', 'afreecatv_cookie', '')
-    netease_cookie = read_config_value(config, 'Cookie', 'netease_cookie', '')
-    qiandurebo_cookie = read_config_value(config, 'Cookie', '千度热播_cookie', '')
-    pandatv_cookie = read_config_value(config, 'Cookie', 'pandatv_cookie', '')
-    maoerfm_cookie = read_config_value(config, 'Cookie', '猫耳FM_cookie', '')
-
-    if len(video_save_type) > 0:
-        if video_save_type.upper().lower() == "FLV".lower():
-            video_save_type = "FLV"
-        elif video_save_type.upper().lower() == "MKV".lower():
-            video_save_type = "MKV"
-        elif video_save_type.upper().lower() == "TS".lower():
-            video_save_type = "TS"
-        elif video_save_type.upper().lower() == "MP4".lower():
-            video_save_type = "MP4"
-        elif video_save_type.upper().lower() == "TS音频".lower():
-            video_save_type = "TS音频"
-        elif video_save_type.upper().lower() == "MKV音频".lower():
-            video_save_type = "MKV音频"
-        else:
-            video_save_type = "TS"
-            print("直播视频保存格式设置有问题,这次录制重置为默认的TS格式")
+if len(video_save_type) > 0:
+    if video_save_type.upper().lower() == "FLV".lower():
+        video_save_type = "FLV"
+    elif video_save_type.upper().lower() == "MKV".lower():
+        video_save_type = "MKV"
+    elif video_save_type.upper().lower() == "TS".lower():
+        video_save_type = "TS"
+    elif video_save_type.upper().lower() == "MP4".lower():
+        video_save_type = "MP4"
+    elif video_save_type.upper().lower() == "TS音频".lower():
+        video_save_type = "TS音频"
+    elif video_save_type.upper().lower() == "MKV音频".lower():
+        video_save_type = "MKV音频"
     else:
         video_save_type = "TS"
-        print("直播视频保存为TS格式")
+        print("直播视频保存格式设置有问题,这次录制重置为默认的TS格式")
+else:
+    video_save_type = "TS"
+    print("直播视频保存为TS格式")
 
 
-    def transform_int_to_time(seconds: int) -> str:
-        m, s = divmod(seconds, 60)
-        h, m = divmod(m, 60)
-        return f"{h}:{m:02d}:{s:02d}"
+def transform_int_to_time(seconds: int) -> str:
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    return f"{h}:{m:02d}:{s:02d}"
 
 
-    def contains_url(string: str) -> bool:
-        pattern = (r"(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-zA-Z0-9][a-zA-Z0-9\-]+(\.["
-                   r"a-zA-Z0-9\-]+)*\.[a-zA-Z]{2,10}(:[0-9]{1,5})?(\/.*)?$")
-        return re.search(pattern, string) is not None
+def contains_url(string: str) -> bool:
+    pattern = (r"(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-zA-Z0-9][a-zA-Z0-9\-]+(\.["
+               r"a-zA-Z0-9\-]+)*\.[a-zA-Z]{2,10}(:[0-9]{1,5})?(\/.*)?$")
+    return re.search(pattern, string) is not None
 
 
-    # 读取URL_config.ini文件
-    try:
-        with open(url_config_file, "r", encoding=encoding, errors='ignore') as file:
-            for line in file:
-                line = line.strip()
-                if line.startswith("#") or len(line) < 20:
-                    continue
+# 读取URL_config.ini文件
+try:
+    parser = argparse.ArgumentParser(description='启动直播流爬取')
+    parser.add_argument('template', type=str, help='模板文件')
+    args = parser.parse_args()
+    sourceFile = args.template
+    # sourceFile = '王者荣耀.json'
+    if os.path.exists(sourceFile):
+        fileObj = open(sourceFile, 'r', encoding='utf-8')
+        data = fileObj.read()
+        config = json.loads(data)
+        target_url = config['url']
+        r_quality = config['quality']
+        name = config['name']
+        url_tuple = (r_quality, target_url, name)
+        record_thread = threading.Thread(target=start_record_new, args=url_tuple)
+        record_thread.daemon = True
+        record_thread.start()
 
-                if re.search('[,，]', line):
-                    split_line = re.split('[,，]', line)
-                else:
-                    split_line = [line, '']
+except Exception as err:
+    logger.warning(f"错误信息: {err} 发生错误的行数: {err.__traceback__.tb_lineno}")
 
-                if len(split_line) == 1:
-                    url = split_line[0]
-                    quality, name = [video_record_quality, '']
-                elif len(split_line) == 2:
-                    if contains_url(split_line[0]):
-                        quality = video_record_quality
-                        url, name = split_line
-                    else:
-                        quality, url = split_line
-                        name = ''
-                else:
-                    quality, url, name = split_line
+if first_run:
+    t = threading.Thread(target=display_info, args=(), daemon=True)
+    t.start()
+    # t2 = threading.Thread(target=change_max_connect, args=(), daemon=True)
+    # t2.start()
+    first_run = False
 
-                if quality not in ["原画", "蓝光", "超清", "高清", "标清"]:
-                    quality = '原画'
-
-                if ('http://' not in url) and ('https://' not in url):
-                    url = 'https://' + url
-
-                url_host = url.split('/')[2]
-                host_list = [
-                    'live.douyin.com',
-                    'v.douyin.com',
-                    'www.tiktok.com',
-                    'live.kuaishou.com',
-                    'www.huya.com',
-                    'www.douyu.com',
-                    'www.yy.com',
-                    'live.bilibili.com',
-                    'www.redelight.cn',
-                    'www.bigo.tv',
-                    'app.blued.cn',
-                    'play.afreecatv.com',
-                    'm.afreecatv.com',
-                    'cc.163.com',
-                    'qiandurebo.com',
-                    'www.pandalive.co.kr',
-                    'fm.missevan.com'
-                ]
-
-                if url_host in host_list:
-                    new_line = (quality, url, name)
-                    url_tuples_list.append(new_line)
-                else:
-                    print(f"{url} 未知链接.此条跳过")
-                    update_file(url_config_file, url, url, start_str='#')
-
-        while len(name_list):
-            a = name_list.pop()
-            replace_words = a.split('|')
-            if replace_words[0] != replace_words[1]:
-                if replace_words[1].startswith("#"):
-                    start_with = '#'
-                    new_word = replace_words[1][1:]
-                else:
-                    start_with = None
-                    new_word = replace_words[1]
-                update_file(url_config_file, replace_words[0], new_word, start_str=start_with)
-
-        if len(url_tuples_list) > 0:
-            text_no_repeat_url = list(set(url_tuples_list))
-
-        if len(text_no_repeat_url) > 0:
-            for url_tuple in text_no_repeat_url:
-                if url_tuple[1] in not_record_list:
-                    continue
-
-                if url_tuple[1] not in runing_list:
-                    if not first_start:
-                        print(f"新增链接: {url_tuple[1]}")
-                    monitoring += 1
-                    args = [url_tuple, monitoring]
-                    # TODO: 执行开始录制的操作
-                    create_var['thread' + str(monitoring)] = threading.Thread(target=start_record, args=args)
-                    create_var['thread' + str(monitoring)].daemon = True
-                    create_var['thread' + str(monitoring)].start()
-                    runing_list.append(url_tuple[1])
-                    time.sleep(local_delay_default)
-        url_tuples_list = []
-        first_start = False
-
-    except Exception as err:
-        logger.warning(f"错误信息: {err} 发生错误的行数: {err.__traceback__.tb_lineno}")
-
-    if first_run:
-        t = threading.Thread(target=display_info, args=(), daemon=True)
-        t.start()
-        t2 = threading.Thread(target=change_max_connect, args=(), daemon=True)
-        t2.start()
-
-        first_run = False
-
-    time.sleep(3)
+while True:
+    time.sleep(10)

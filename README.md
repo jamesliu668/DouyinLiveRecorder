@@ -1,39 +1,25 @@
-![video_spider](https://socialify.git.ci/ihmily/DouyinLiveRecorder/image?font=Inter&forks=1&language=1&owner=1&pattern=Circuit%20Board&stargazers=1&theme=Light)
+# 说明
 
-## 💡简介
-[![Python Version](https://img.shields.io/badge/python-3.11.6-blue.svg)](https://www.python.org/downloads/release/python-3116/)
-[![Supported Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux-blue.svg)](https://github.com/ihmily/DouyinLiveRecorder)
-[![Docker Pulls](https://img.shields.io/docker/pulls/ihmily/douyin-live-recorder?label=Docker%20Pulls&color=blue&logo=docker)](https://hub.docker.com/r/ihmily/douyin-live-recorder/tags)
-![GitHub issues](https://img.shields.io/github/issues/ihmily/DouyinLiveRecorder.svg)
-[![Latest Release](https://img.shields.io/github/v/release/ihmily/DouyinLiveRecorder)](https://github.com/ihmily/DouyinLiveRecorder/releases/latest)
-![Downloads](https://img.shields.io/github/downloads/ihmily/DouyinLiveRecorder/total)
+本项目完全从`ihmily/DouyinLiveRecorder`修改而来，向源项目致敬：![DouyinLiveRecorder](https://github.com/ihmily/DouyinLiveRecorder/)
 
-一款简易的可循环值守的直播录制工具，基于FFmpeg实现多平台直播源录制，支持自定义配置录制以及直播状态推送。
 
-</div>
+## 更新如下
+
+1. 删除了不需要的直播平台
+2. 删除配置文件`config/URL_config.ini`
+3. 从命令行传入任务模版
+4. 只支持单个直播间，如果要支持多直播间录制，开多个进程
+5. 直播间断开不尝试重连，保证IP安全
 
 ## 😺已支持平台
 
 - [x] 抖音
-- [x] TikTok
 - [x] 快手
-- [x] 虎牙
-- [x] 斗鱼
-- [x] YY
-- [x] B站
-- [x] 小红书
-- [x] bigo 
-- [x] blued
-- [x] AfreecaTV
-- [x] 网易cc
-- [x] 千度热播
-- [x] pandaTV
-- [x] 猫耳FM
+
 - [ ] 更多平台正在更新中
 
-</div>
 
-## 🎈项目结构
+## 🎈任务模版结构
 
 ```
 .
