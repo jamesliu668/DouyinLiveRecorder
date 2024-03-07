@@ -114,7 +114,7 @@ def display_info():
     print(f"录制视频质量为: {video_record_quality}", end=" | ")
     print(f"录制视频格式为: {video_save_type}", end=" | ")
     print(f"目前瞬时错误数为: {warning_count}", end=" | ")
-    with tqdm(total=18000, desc="正在录制中", leave=False) as pbar:
+    with tqdm(total=24*3600, desc="正在录制中", leave=False) as pbar:
         while True:
             try:
                 time.sleep(5)
