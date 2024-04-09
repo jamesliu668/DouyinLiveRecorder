@@ -1296,11 +1296,11 @@ try:
 
         result=os.popen("ps aux | grep -v grep | grep {}".format(sourceFile))
         output=result.read().strip()
-        logger.debug(output)
+        logging.debug(output)
 
-        # in crontab, the number of processors is 2
-        if output and len(output.split("\n")) > 2:
-            logger.error("{name}直播录制中...")
+        # don't use crontab, the number of processors is 2
+        if output and len(output.split("\n")) > 1:
+            logging.error("{name}直播录制中...")
             sys.exit(1)
 
         logging.info(f"开始录制直播：{name}-{r_quality}-{target_url}")
@@ -1318,5 +1318,5 @@ try:
         logging.error(f"缺少配置文件")
 
 except Exception as err:
-    logger.error(f"错误信息: {err} 发生错误的行数: {err.__traceback__.tb_lineno}")
-    logger.error(traceback.format_exc())
+    logging.error(f"错误信息: {err} 发生错误的行数: {err.__traceback__.tb_lineno}")
+    logging.error(traceback.format_exc())
