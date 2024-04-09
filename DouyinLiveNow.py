@@ -24,6 +24,7 @@ chromeBinaryLocation = os.path.join("/usr/local/bin/chromium") #打包配置
 options.binary_location = chromeBinaryLocation
 
 # 在Linux和Mac中如果chromedriver已经使用yum或者brew安装在系统路径上就不需要配置，使用chromedriver -version查看版本
+# consider using webdriver_manager, see https://stackoverflow.com/questions/63421086/modulenotfounderror-no-module-named-webdriver-manager-error-even-after-instal
 chromeDrivePath = os.path.join(__location__, 'chrome', 'chromedriver') #打包配置
 
 if int(seleniumVersion.split('.')[0]) > 3:
