@@ -11,7 +11,9 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "/Users/liujian/Documents/project/github/DouyinLiveRecorder/config/dy/王者荣耀-初见1v5.json"
+                // "/Users/liujian/Documents/project/github/DouyinLiveRecorder/config/dy/王者荣耀-初见1v5.json"
+                // "/Users/liujian/Documents/project/github/DouyinLiveRecorder/config/ks/带货-安九有喜3月6日接好运大场.json"
+                "/Users/liujian/Documents/project/github/DouyinLiveRecorder/config/bilibili/原神代肝莹.json"
             ]
         }
     ]
