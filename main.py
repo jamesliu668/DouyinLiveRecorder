@@ -487,12 +487,18 @@ def get_bilibili_stream_url(json_data: dict, video_quality: str) -> dict:
         "is_live": False,
     }
     if playurl_info:
-        def get_url(m, n):
+        def get_url(m, n, format_name=-1):
+            """
+                m: protocol_name, 0 is http_stream; 1 is http_hls; 现在B站用的都是hls
+                n: 没搞清楚
+                format_name: 在m的基础上进行选择。在m=1的情况下，format=1，使用fmp4（以前是0，ts），-1表示选最后一个，比较通用
+            """
             format_list = ['.flv', '.m3u8']
             # 字典中的键就是qn，其中qn=30000为杜比 20000为4K 10000为原画 400蓝光 250超清 150高清，qn=0是默认画质
             quality_list = {'10000': '', '400': '_4000', '250': '_2500', '150': '_1500'}
 
-            stream_data = playurl_info['playurl']['stream'][m]['format'][0]['codec'][0]
+            stream_data = playurl_info['playurl']['stream'][m]['format'][format_name]['codec'][0]
+            # stream_data1 = playurl_info['playurl']['stream'][1]['format'][1]['codec'][0]
             accept_qn_list = stream_data['accept_qn']
             while len(accept_qn_list) < 4:
                 accept_qn_list.append(accept_qn_list[-1])
