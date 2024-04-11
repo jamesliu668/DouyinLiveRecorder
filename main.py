@@ -906,6 +906,8 @@ def start_record(url_data: tuple, count_variable: int = -1):
                                 ]
 
                             ffmpeg_command.extend(command)
+                            ffmpeg_command_line = " ".join(ffmpeg_command)
+                            logging.info(f"ffmpeg: {ffmpeg_command_line}")
                             _output = subprocess.check_output(ffmpeg_command, stderr=subprocess.STDOUT)
 
                         except subprocess.CalledProcessError as e:
