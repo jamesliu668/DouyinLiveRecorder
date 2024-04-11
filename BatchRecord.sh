@@ -19,7 +19,8 @@ fi
 
 # Loop through all .wav files in the directory
 for configFile in "$config_directory"/*.json; do
-    log_name=$(basename "$configFile" .log)
-    result=$(nohup python3 main.py "$configFile" > "$log_name" 2>&1 &)
+    base_name=$(basename "$configFile" .json)
+    log_name="$base_name.log"
+    result=$(nohup python3 main.py "$configFile" >> logs/"$log_name" 2>&1 &)
     echo "开始录制$configFile"
 done
