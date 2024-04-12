@@ -1,5 +1,5 @@
 from lxml import etree
-
+import re
 from selenium import webdriver
 from selenium import __version__ as seleniumVersion
 import os
@@ -15,7 +15,7 @@ dyConfigPath = os.path.join(__location__, "config", "dy-live")
 prefs = {"profile.managed_default_content_settings.images": 2, 'permissions.default.stylesheet': 2}
 options = webdriver.ChromeOptions()
 options.add_experimental_option("prefs", prefs)
-options.add_argument("--start-maximized")  # 将浏览器窗口最大化
+options.add_argument("--window-size=1400,600")
 options.add_argument("--no-sandbox")
 options.add_argument('--headless')
 
@@ -41,24 +41,41 @@ wait = WebDriverWait(driver, 5)
 
 driver.get('https://live.douyin.com/')
 time.sleep(1.2)
+
+# 找到滑动窗口
+js = 'scrollWin = document.getElementById("_douyin_live_scroll_container_")'
+driver.execute_script(js)
+documentHeight = driver.execute_script("return scrollWin.scrollHeight")
+
+documentNewHeight = 0
+while documentNewHeight < documentHeight:
+    # 向下划动300px，到底，刷出所有的直播间链接
+    js = 'scrollWin.scrollBy(0, 300)'
+    driver.execute_script(js)
+    time.sleep(5)
+    documentNewHeight += 300
+
 unicodeText = driver.page_source
 
 # 通过XPath定位元素并获取文本
 html_tree = etree.HTML(unicodeText)
 hrefs = html_tree.xpath("//div[@class='gnejI3bf']")
+for href in hrefs:
+    url_list = href.xpath('./a/@href')
+    anchor_name = href.xpath('.//object//text()')
+    length = len(anchor_name)
 
-url_list = hrefs[0].xpath('./a/@href')
-anchor_name = hrefs[0].xpath('.//object//text()')
-length = len(anchor_name)
-
-for i in range(length):
-    item = {
-        'quality': '标清',
-        'url': url_list[i],
-        'name': anchor_name[i]
-    }
-    configPath = os.path.join(dyConfigPath, f'{anchor_name[i]}.json')
-    with open(configPath, 'w', encoding='utf-8') as json_file:
-        ujson.dump(item, json_file, ensure_ascii=False)
+    for i in range(length):
+        item = {
+            'quality': '标清',
+            'url': url_list[i],
+            'name': anchor_name[i]
+        }
+        
+        # room_id = item['url'].split('/')[-1]
+        room_id = re.findall(r'\d+', item['url'])[0]
+        configPath = os.path.join(dyConfigPath, f'{room_id}.json')
+        with open(configPath, 'w', encoding='utf-8') as json_file:
+            ujson.dump(item, json_file, ensure_ascii=False)
 # 关闭浏览器
 driver.quit()
