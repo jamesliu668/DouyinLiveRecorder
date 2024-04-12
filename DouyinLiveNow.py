@@ -10,7 +10,8 @@ import ujson
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 dyConfigPath = os.path.join(__location__, "config", "dy-live")
-
+if not os.path.exists(dyConfigPath):
+    os.makedirs(dyConfigPath)
 
 prefs = {"profile.managed_default_content_settings.images": 2, 'permissions.default.stylesheet': 2}
 options = webdriver.ChromeOptions()
@@ -40,7 +41,7 @@ driver.set_page_load_timeout(50)
 wait = WebDriverWait(driver, 5)
 
 driver.get('https://live.douyin.com/')
-time.sleep(1.2)
+time.sleep(10)
 
 # 找到滑动窗口
 js = 'scrollWin = document.getElementById("_douyin_live_scroll_container_")'
