@@ -70,13 +70,20 @@ length = len(anchor_name_list)
 base_url = "https://live.bilibili.com/"
 for i in range(length):
     room_id = ujson.loads(room_id_list_json[i])["msg"]["room_id"]
+    # 原直播间url
+    target_url =  base_url + str(room_id)
+    driver.get(target_url)
+    time.sleep(2)
+    # 发生跳转后的url
+    final_url = driver.current_url
+    final_room_id = final_url.rsplit('/', 1)[-1]
     item = {
         'quality': '标清',
-        'url': base_url + str(room_id),
+        'url': final_url,
         'name': anchor_name_list[i]
     }
 
-    configPath = os.path.join(bilibiliConfigPath, f'{room_id}.json')
+    configPath = os.path.join(bilibiliConfigPath, f'{final_room_id}.json')
     with open(configPath, 'w', encoding='utf-8') as json_file:
         ujson.dump(item, json_file, ensure_ascii=False)
 
