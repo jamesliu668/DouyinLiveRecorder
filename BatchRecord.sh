@@ -1,7 +1,11 @@
 #!/bin/bash
 
+# 从目标文件中选取配置文件，并运行爬取任务
+# 爬取任务总数量不超过 max_python_processes
+# mac不支持shuf
+
 # Maximum allowed number of Python processes
-max_python_processes=5
+max_python_processes=15
 
 # Check if at least two arguments are provided
 if [ "$#" -ne 1 ]; then
@@ -32,12 +36,16 @@ fi
 file_list=("$config_directory"/*.json) 
 # shuf_files=($(shuf -e "${file_list[@]}")) # ony work in linux
 
+# Shuffle the array and select the first 5 elements
+random_indices=($(shuf -i 0-$((${#file_list[@]} - 1)) -n "$max_python_processes"))
+
 # Loop through all .json files in the directory
-for configFile in "${file_list[@]}"; do
+for index in "${random_indices[@]}"; do
+    configFile=("${file_list[$index]}")
     base_name=$(basename "$configFile" .json)
     log_name="$base_name.log"
     # Execute the Python script and redirect output to log file
-    nohup python3 main.py "$configFile" >> "logs/$log_name" 2>&1 &
+    result=$(nohup python3 main.py "$configFile" >> logs/"$log_name" 2>&1 &)
     echo "Started recording $configFile"
 
     python_process_count=$(ps aux | grep python | grep -c "$config_directory")
