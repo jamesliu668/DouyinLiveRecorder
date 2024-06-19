@@ -11,6 +11,12 @@
 4. 只支持单个直播间，如果要支持多直播间录制，开多个进程
 5. 直播间断开不尝试重连，保证IP安全
 
+## 定时任务
+```
+33 8-23 * * * cd /Users/james/Documents/github/DouyinLiveRecorder && ./BatchRecord.sh config/dy >> logs/batchrecord.log
+```
+从指定文件夹中选取抖音直播配置文件，并下载
+
 ## 😺已支持平台
 
 - [x] 抖音
